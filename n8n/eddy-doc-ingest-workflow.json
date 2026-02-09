@@ -2,22 +2,12 @@
   "name": "EDDY Doc Ingest",
   "nodes": [
     {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "minutes",
-              "minutesInterval": 15
-            }
-          ]
-        }
-      },
-      "id": "eddy-ingest-schedule",
-      "name": "⏰ Scan Schedule (15min)",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
       "position": [100, 400],
-      "webhookId": null
+      "id": "727dd4e0-547e-414e-95e2-8a23d734d892"
     },
     {
       "parameters": {
@@ -28,22 +18,22 @@
           "allowedOrigins": "*"
         }
       },
-      "id": "eddy-ingest-webhook",
       "name": "🌐 Webhook Ingest",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [100, 700],
-      "webhookId": "eddy-doc-ingest-00000010"
+      "webhookId": "eddy-doc-ingest-00000010",
+      "id": "f5d9864e-fcd1-45a4-9973-08aa90ecb9bd"
     },
     {
       "parameters": {
-        "jsCode": "// Scan /eddy-inbox/pending/ für neue Dokumente\nconst fs = require('fs');\nconst path = require('path');\nconst crypto = require('crypto');\n\nconst INBOX_DIR = '/eddy-inbox/pending';\nconst SUPPORTED_TYPES = ['.pdf', '.txt', '.md', '.docx'];\n\ntry {\n  if (!fs.existsSync(INBOX_DIR)) {\n    return [{ json: { error: 'Inbox directory not found', path: INBOX_DIR, files: [] } }];\n  }\n\n  const files = fs.readdirSync(INBOX_DIR)\n    .filter(f => {\n      const ext = path.extname(f).toLowerCase();\n      return SUPPORTED_TYPES.includes(ext) && !f.startsWith('.');\n    })\n    .map(f => {\n      const filePath = path.join(INBOX_DIR, f);\n      const stats = fs.statSync(filePath);\n      const fileBuffer = fs.readFileSync(filePath);\n      const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');\n      const ext = path.extname(f).toLowerCase().replace('.', '');\n      \n      return {\n        json: {\n          fileName: f,\n          filePath: filePath,\n          sourceType: ext,\n          fileHash: fileHash,\n          fileSize: stats.size,\n          modifiedAt: stats.mtime.toISOString()\n        }\n      };\n    });\n\n  if (files.length === 0) {\n    return [{ json: { status: 'empty', message: 'No new files in inbox' } }];\n  }\n\n  return files;\n} catch (err) {\n  return [{ json: { error: err.message } }];\n}"
+        "jsCode": "// Scan /home/node/eddy-inbox/pending/ für neue Dokumente\nconst fs = require('fs');\nconst path = require('path');\nconst crypto = require('crypto');\n\nconst INBOX_DIR = '/home/node/eddy-inbox/pending';\nconst SUPPORTED_TYPES = ['.pdf', '.txt', '.md', '.docx'];\n\ntry {\n  if (!fs.existsSync(INBOX_DIR)) {\n    return [{ json: { error: 'Inbox directory not found', path: INBOX_DIR, files: [] } }];\n  }\n\n  const files = fs.readdirSync(INBOX_DIR)\n    .filter(f => {\n      const ext = path.extname(f).toLowerCase();\n      return SUPPORTED_TYPES.includes(ext) && !f.startsWith('.');\n    })\n    .map(f => {\n      const filePath = path.join(INBOX_DIR, f);\n      const stats = fs.statSync(filePath);\n      const fileBuffer = fs.readFileSync(filePath);\n      const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');\n      const ext = path.extname(f).toLowerCase().replace('.', '');\n      \n      return {\n        json: {\n          fileName: f,\n          filePath: filePath,\n          sourceType: ext,\n          fileHash: fileHash,\n          fileSize: stats.size,\n          modifiedAt: stats.mtime.toISOString()\n        }\n      };\n    });\n\n  if (files.length === 0) {\n    return [{ json: { status: 'empty', message: 'No new files in inbox' } }];\n  }\n\n  return files;\n} catch (err) {\n  return [{ json: { error: err.message } }];\n}"
       },
-      "id": "eddy-ingest-scan",
       "name": "📂 Scan Inbox",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [340, 400]
+      "position": [340, 400],
+      "id": "4a4defd7-9a41-4f2f-9280-fce1e64b6cd0"
     },
     {
       "parameters": {
@@ -51,7 +41,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "combinator": "and",
           "conditions": [
@@ -60,17 +50,19 @@
               "rightValue": "",
               "operator": {
                 "type": "string",
-                "operation": "isNotEmpty"
+                "operation": "exists",
+                "singleValue": true
               }
             }
           ]
-        }
+        },
+        "looseTypeValidation": true
       },
-      "id": "eddy-ingest-has-files",
       "name": "📋 Has Files?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [560, 400]
+      "position": [560, 400],
+      "id": "389d0d2c-d898-42f9-89f7-66e593216278"
     },
     {
       "parameters": {
@@ -80,7 +72,6 @@
           "queryReplacement": "={{ [$json.fileHash] }}"
         }
       },
-      "id": "eddy-ingest-dedup",
       "name": "🔍 Duplikat-Check",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -90,7 +81,8 @@
           "id": "Jq2IeHXVMOnpk0fI",
           "name": "eddy-knowledge-postgres"
         }
-      }
+      },
+      "id": "a9113e43-9ecc-40cf-9d3f-72a1120c712d"
     },
     {
       "parameters": {
@@ -113,31 +105,31 @@
           ]
         }
       },
-      "id": "eddy-ingest-is-new",
       "name": "🆕 Noch nicht ingestiert?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1000, 400]
+      "position": [1000, 400],
+      "id": "9e35ee71-f7c4-4d20-8119-c05abcc21ab7"
     },
     {
       "parameters": {
-        "jsCode": "// Text-Extraktion basierend auf Dateityp\nconst fs = require('fs');\n\nconst filePath = $('📋 Has Files?').first().json.filePath;\nconst sourceType = $('📋 Has Files?').first().json.sourceType;\nconst fileName = $('📋 Has Files?').first().json.fileName;\nconst fileHash = $('📋 Has Files?').first().json.fileHash;\nconst modifiedAt = $('📋 Has Files?').first().json.modifiedAt;\n\nlet content = '';\n\ntry {\n  if (sourceType === 'txt' || sourceType === 'md') {\n    // Plaintext/Markdown: direkt lesen\n    content = fs.readFileSync(filePath, 'utf-8');\n  } else if (sourceType === 'pdf') {\n    // PDF: Versuche text-basierte Extraktion\n    const { execSync } = require('child_process');\n    try {\n      content = execSync(`pdftotext -layout \"${filePath}\" -`, { encoding: 'utf-8', timeout: 30000 });\n    } catch (e) {\n      // Fallback: Binary als Text lesen (für simple PDFs)\n      content = fs.readFileSync(filePath, 'utf-8').replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, ' ');\n    }\n  } else if (sourceType === 'docx') {\n    const { execSync } = require('child_process');\n    try {\n      content = execSync(`pandoc -t plain \"${filePath}\"`, { encoding: 'utf-8', timeout: 30000 });\n    } catch (e) {\n      content = '[DOCX extraction failed - install pandoc in n8n container]';\n    }\n  }\n\n  if (!content || content.trim().length < 10) {\n    return [{ json: { error: 'No content extracted', fileName, sourceType } }];\n  }\n\n  return [{\n    json: {\n      content: content.trim(),\n      fileName,\n      filePath,\n      sourceType,\n      fileHash,\n      modifiedAt,\n      contentLength: content.trim().length\n    }\n  }];\n} catch (err) {\n  return [{ json: { error: err.message, fileName, sourceType } }];\n}"
+        "jsCode": "// Text-Extraktion basierend auf Dateityp\nconst fs = require('fs');\nconst { execSync } = require('child_process');\n\nconst filePath = $('📋 Has Files?').first().json.filePath;\nconst sourceType = $('📋 Has Files?').first().json.sourceType;\nconst fileName = $('📋 Has Files?').first().json.fileName;\nconst fileHash = $('📋 Has Files?').first().json.fileHash;\nconst modifiedAt = $('📋 Has Files?').first().json.modifiedAt;\n\nlet content = '';\n\ntry {\n  if (sourceType === 'txt' || sourceType === 'md') {\n    content = fs.readFileSync(filePath, 'utf-8');\n  } else if (sourceType === 'pdf') {\n    // pdf-parse in eigenem Node-Prozess (n8n Sandbox freezt Prototypen)\n    const result = execSync(\n      'node /home/node/eddy-inbox/scripts/pdf-extract.js \"' + filePath.replace(/\"/g, '\\\\\"') + '\"',\n      { timeout: 30000, encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 }\n    );\n    const parsed = JSON.parse(result.trim());\n    if (parsed.error) throw new Error('PDF parse: ' + parsed.error);\n    content = parsed.text || '';\n  } else if (sourceType === 'docx') {\n    content = '[DOCX extraction not yet supported]';\n  }\n\n  if (!content || content.trim().length < 10) {\n    return [{ json: { error: 'No content extracted', fileName, sourceType } }];\n  }\n\n  return [{\n    json: {\n      content: content.trim(),\n      fileName, filePath, sourceType, fileHash, modifiedAt,\n      contentLength: content.trim().length\n    }\n  }];\n} catch (err) {\n  return [{ json: { error: err.message, fileName, sourceType } }];\n}"
       },
-      "id": "eddy-ingest-extract",
       "name": "📄 Text Extraction",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1220, 400]
+      "position": [1220, 400],
+      "id": "34de3c90-2b5b-4125-9935-61cb42459a41"
     },
     {
       "parameters": {
         "jsCode": "// Chunking mit Overlap\nconst CHUNK_SIZE = 800;     // ~500 Token\nconst OVERLAP = 320;        // ~200 Token\n\nconst content = $json.content || '';\nconst fileName = $json.fileName;\nconst sourceType = $json.sourceType;\nconst fileHash = $json.fileHash;\nconst modifiedAt = $json.modifiedAt;\n\nconst crypto = require('crypto');\n\nif (!content || content.length < 10) {\n  return [{ json: { error: 'No content to chunk', fileName } }];\n}\n\nconst chunks = [];\nlet startIndex = 0;\nlet chunkIndex = 0;\n\nwhile (startIndex < content.length) {\n  let endIndex = Math.min(startIndex + CHUNK_SIZE, content.length);\n  \n  // Versuche am Satzende zu brechen\n  if (endIndex < content.length) {\n    const lastPeriod = content.lastIndexOf('.', endIndex);\n    const lastNewline = content.lastIndexOf('\\n', endIndex);\n    const breakPoint = Math.max(lastPeriod, lastNewline);\n    if (breakPoint > startIndex + CHUNK_SIZE * 0.5) {\n      endIndex = breakPoint + 1;\n    }\n  }\n  \n  const chunkText = content.slice(startIndex, endIndex).trim();\n  \n  if (chunkText.length > 20) {\n    const chunkHash = crypto.createHash('sha256').update(chunkText).digest('hex');\n    chunks.push({\n      json: {\n        chunk_content: chunkText,\n        chunk_hash: chunkHash,\n        chunk_index: chunkIndex,\n        source_file: fileName,\n        source_type: sourceType,\n        file_hash: fileHash,\n        modified_at: modifiedAt\n      }\n    });\n    chunkIndex++;\n  }\n  \n  if (endIndex >= content.length) break;\n  startIndex = endIndex - OVERLAP;\n}\n\nconst totalChunks = chunks.length;\nchunks.forEach(c => c.json.total_chunks = totalChunks);\n\nreturn chunks;"
       },
-      "id": "eddy-ingest-chunk",
       "name": "🔪 Chunking (800/320)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1440, 400]
+      "position": [1440, 400],
+      "id": "283113a0-6323-48a7-9762-8e53a2f63355"
     },
     {
       "parameters": {
@@ -150,11 +142,11 @@
           "timeout": 60000
         }
       },
-      "id": "eddy-ingest-embed",
       "name": "🧬 Embedding (mxbai)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1660, 400]
+      "position": [1660, 400],
+      "id": "78467c42-1ba9-4e5c-adc2-063e3296db8b"
     },
     {
       "parameters": {
@@ -164,7 +156,6 @@
           "queryReplacement": "={{ [$node['🔪 Chunking (800/320)'].json.chunk_content, $node['🔪 Chunking (800/320)'].json.chunk_hash, '[' + $json.embedding.join(',') + ']', $node['🔪 Chunking (800/320)'].json.source_file, $node['🔪 Chunking (800/320)'].json.source_type, $node['🔪 Chunking (800/320)'].json.file_hash, $node['🔪 Chunking (800/320)'].json.chunk_index, $node['🔪 Chunking (800/320)'].json.total_chunks, $node['🔪 Chunking (800/320)'].json.modified_at] }}"
         }
       },
-      "id": "eddy-ingest-store",
       "name": "💾 Store in pgvector",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -174,27 +165,28 @@
           "id": "Jq2IeHXVMOnpk0fI",
           "name": "eddy-knowledge-postgres"
         }
-      }
+      },
+      "id": "98c54b9f-074d-4739-88be-1c3888c9ed61"
     },
     {
       "parameters": {
-        "jsCode": "// Datei von pending nach processed verschieben\nconst fs = require('fs');\nconst path = require('path');\n\nconst filePath = $('📋 Has Files?').first().json.filePath;\nconst fileName = $('📋 Has Files?').first().json.fileName;\nconst processedDir = '/eddy-inbox/processed';\n\ntry {\n  if (!fs.existsSync(processedDir)) {\n    fs.mkdirSync(processedDir, { recursive: true });\n  }\n  \n  const dest = path.join(processedDir, fileName);\n  fs.renameSync(filePath, dest);\n  \n  return [{\n    json: {\n      status: 'success',\n      fileName,\n      movedTo: dest,\n      chunks_created: $items().length\n    }\n  }];\n} catch (err) {\n  const failedDir = '/eddy-inbox/failed';\n  try {\n    if (!fs.existsSync(failedDir)) fs.mkdirSync(failedDir, { recursive: true });\n    fs.renameSync(filePath, path.join(failedDir, fileName));\n  } catch (e) { /* ignore */ }\n  \n  return [{ json: { status: 'error', error: err.message, fileName } }];\n}"
+        "jsCode": "// Datei von pending nach processed verschieben\nconst fs = require('fs');\nconst path = require('path');\n\nconst filePath = $('📋 Has Files?').first().json.filePath;\nconst fileName = $('📋 Has Files?').first().json.fileName;\nconst processedDir = '/home/node/eddy-inbox/processed';\n\ntry {\n  if (!fs.existsSync(processedDir)) {\n    fs.mkdirSync(processedDir, { recursive: true });\n  }\n  \n  const dest = path.join(processedDir, fileName);\n  fs.renameSync(filePath, dest);\n  \n  return [{\n    json: {\n      status: 'success',\n      fileName,\n      movedTo: dest,\n      chunks_created: $items().length\n    }\n  }];\n} catch (err) {\n  const failedDir = '/home/node/eddy-inbox/failed';\n  try {\n    if (!fs.existsSync(failedDir)) fs.mkdirSync(failedDir, { recursive: true });\n    fs.renameSync(filePath, path.join(failedDir, fileName));\n  } catch (e) { /* ignore */ }\n  \n  return [{ json: { status: 'error', error: err.message, fileName } }];\n}"
       },
-      "id": "eddy-ingest-move",
       "name": "📁 Move to Processed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2100, 400]
+      "position": [2100, 400],
+      "id": "c95c59f6-3ca6-4482-8631-8ee07cd232f8"
     },
     {
       "parameters": {
         "jsCode": "// Webhook-Pfad: Content direkt chunken\nconst crypto = require('crypto');\n\nconst content = $json.body.content || '';\nconst metadata = $json.body.metadata || {};\nconst fileName = metadata.source_file || 'webhook-input';\nconst sourceType = metadata.source_type || 'txt';\nconst category = metadata.category || null;\nconst tags = metadata.tags || [];\nconst fileHash = crypto.createHash('sha256').update(content).digest('hex');\n\nconst CHUNK_SIZE = 800;\nconst OVERLAP = 320;\n\nif (!content || content.trim().length < 10) {\n  return [{ json: { error: 'No content provided' } }];\n}\n\nconst chunks = [];\nlet startIndex = 0;\nlet chunkIndex = 0;\nconst trimmed = content.trim();\n\nwhile (startIndex < trimmed.length) {\n  let endIndex = Math.min(startIndex + CHUNK_SIZE, trimmed.length);\n  \n  if (endIndex < trimmed.length) {\n    const lastPeriod = trimmed.lastIndexOf('.', endIndex);\n    const lastNewline = trimmed.lastIndexOf('\\n', endIndex);\n    const breakPoint = Math.max(lastPeriod, lastNewline);\n    if (breakPoint > startIndex + CHUNK_SIZE * 0.5) {\n      endIndex = breakPoint + 1;\n    }\n  }\n  \n  const chunkText = trimmed.slice(startIndex, endIndex).trim();\n  \n  if (chunkText.length > 20) {\n    const chunkHash = crypto.createHash('sha256').update(chunkText).digest('hex');\n    chunks.push({\n      json: {\n        chunk_content: chunkText,\n        chunk_hash: chunkHash,\n        chunk_index: chunkIndex,\n        source_file: fileName,\n        source_type: sourceType,\n        file_hash: fileHash,\n        category: category,\n        tags: tags\n      }\n    });\n    chunkIndex++;\n  }\n  \n  if (endIndex >= trimmed.length) break;\n  startIndex = endIndex - OVERLAP;\n}\n\nconst totalChunks = chunks.length;\nchunks.forEach(c => c.json.total_chunks = totalChunks);\n\nreturn chunks;"
       },
-      "id": "eddy-ingest-webhook-chunk",
       "name": "🔪 Webhook Chunking",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [340, 700]
+      "position": [340, 700],
+      "id": "d6bf7c64-b07c-411b-a583-ade8afc71816"
     },
     {
       "parameters": {
@@ -207,11 +199,11 @@
           "timeout": 60000
         }
       },
-      "id": "eddy-ingest-webhook-embed",
       "name": "🧬 WH Embedding",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [560, 700]
+      "position": [560, 700],
+      "id": "440b24c4-74e6-41ba-bd0f-91bc6e070f9b"
     },
     {
       "parameters": {
@@ -221,7 +213,6 @@
           "queryReplacement": "={{ [$node['🔪 Webhook Chunking'].json.chunk_content, $node['🔪 Webhook Chunking'].json.chunk_hash, '[' + $json.embedding.join(',') + ']', $node['🔪 Webhook Chunking'].json.source_file, $node['🔪 Webhook Chunking'].json.source_type, $node['🔪 Webhook Chunking'].json.file_hash, $node['🔪 Webhook Chunking'].json.chunk_index, $node['🔪 Webhook Chunking'].json.total_chunks, $node['🔪 Webhook Chunking'].json.category || null, $node['🔪 Webhook Chunking'].json.tags ? '{' + $node['🔪 Webhook Chunking'].json.tags.join(',') + '}' : null] }}"
         }
       },
-      "id": "eddy-ingest-webhook-store",
       "name": "💾 WH Store",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -231,7 +222,8 @@
           "id": "Jq2IeHXVMOnpk0fI",
           "name": "eddy-knowledge-postgres"
         }
-      }
+      },
+      "id": "8a0362d7-f1c6-4110-9e60-d3e9e413f854"
     },
     {
       "parameters": {
@@ -239,28 +231,25 @@
         "responseBody": "={{ { status: 'success', chunks_ingested: $items().length, source: $node['🔪 Webhook Chunking'].first().json.source_file } }}",
         "options": {}
       },
-      "id": "eddy-ingest-webhook-respond",
       "name": "✅ WH Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1000, 700]
+      "position": [1000, 700],
+      "id": "c2f848b1-57e3-42b7-8b0c-0ab9bccb8b1a"
     }
   ],
   "connections": {
-    "⏰ Scan Schedule (15min)": {
-      "main": [[{"node": "📂 Scan Inbox", "type": "main", "index": 0}]]
-    },
     "📂 Scan Inbox": {
       "main": [[{"node": "📋 Has Files?", "type": "main", "index": 0}]]
     },
     "📋 Has Files?": {
-      "main": [[{"node": "🔍 Duplikat-Check", "type": "main", "index": 0}]]
+      "main": [[{"node": "🔍 Duplikat-Check", "type": "main", "index": 0}], []]
     },
     "🔍 Duplikat-Check": {
       "main": [[{"node": "🆕 Noch nicht ingestiert?", "type": "main", "index": 0}]]
     },
     "🆕 Noch nicht ingestiert?": {
-      "main": [[{"node": "📄 Text Extraction", "type": "main", "index": 0}]]
+      "main": [[], [{"node": "📄 Text Extraction", "type": "main", "index": 0}]]
     },
     "📄 Text Extraction": {
       "main": [[{"node": "🔪 Chunking (800/320)", "type": "main", "index": 0}]]
@@ -285,6 +274,9 @@
     },
     "💾 WH Store": {
       "main": [[{"node": "✅ WH Response", "type": "main", "index": 0}]]
+    },
+    "Manual Trigger": {
+      "main": [[{"node": "📂 Scan Inbox", "type": "main", "index": 0}]]
     }
   },
   "settings": {
@@ -292,7 +284,6 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "eddy-doc-ingest"
