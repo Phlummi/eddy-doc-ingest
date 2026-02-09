@@ -45,6 +45,11 @@ Manual Trigger / ⏰ Schedule
     │  - SHA-256 pro Chunk
     │
     ▼
+🔄 Batch Loop (SplitInBatches)
+    │  - Batch Size: 1 (Sequentielle Verarbeitung!)
+    │  - Verhindert Ollama Overload ("Service Unavailable")
+    │
+    ▼
 🧬 Embedding (mxbai)
     │  - POST http://n8n-ollama:11434/api/embeddings
     │  - model: mxbai-embed-large
@@ -54,6 +59,9 @@ Manual Trigger / ⏰ Schedule
 💾 Store in pgvector
     │  - INSERT INTO document_chunks
     │  - ON CONFLICT (content_hash) DO NOTHING
+    │
+    ▼
+🔄 Batch Loop (End)
     │
     ▼
 📁 Move to Processed
@@ -106,6 +114,7 @@ environment:
 | Postgres | n8n-nodes-base.postgres | 2.5 |
 | HTTP Request | n8n-nodes-base.httpRequest | 4.2 |
 | Respond | n8n-nodes-base.respondToWebhook | 1.1 |
+| SplitInBatches | n8n-nodes-base.splitInBatches | 3 |
 
 ## Konfiguration
 
@@ -119,6 +128,7 @@ environment:
 | Credential | eddy-knowledge-postgres | ID: Jq2IeHXVMOnpk0fI |
 | Webhook | POST /webhook/eddy/doc-ingest | webhookId: eddy-doc-ingest-00000010 |
 | Workflow ID | z4re03A65oXIt7Wz | n8n interne ID |
+| Batch Size | 1 | Stabilisiert Ollama Last |
 
 ## IF-Node Routing (Wichtig!)
 
